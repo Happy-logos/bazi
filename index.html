@@ -113,7 +113,7 @@ const sty={input:{background:"rgba(45,36,24,0.04)",border:"1px solid rgba(45,36,
 
 return(<div style={{maxWidth:640,margin:"0 auto",padding:"0 16px"}}>
 <div style={{textAlign:"center",padding:"48px 0 32px",borderBottom:"1px solid rgba(91,140,90,0.2)"}}>
-<div style={{fontSize:13,color:"#5B8C5A",letterSpacing:6,marginBottom:12}}>八 字 精 算</div>
+<div style={{fontSize:13,color:"#5B8C5A",letterSpacing:6,marginBottom:12}}>干 支 历 法 推 演</div>
 <h1 style={{fontSize:26,fontWeight:900,letterSpacing:4,marginBottom:8,background:"linear-gradient(135deg,#2d2418,#C75B3A)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>万物皆可用数学解答</h1>
 <p style={{fontSize:13,color:"rgba(45,36,24,0.4)",maxWidth:480,margin:"0 auto",lineHeight:1.8}}>锚点：公元前720年日食 · 算法：Meeus太阳黄经 · 验证：儒略日连续推算</p>
 </div>
@@ -135,7 +135,7 @@ return(<div style={{maxWidth:640,margin:"0 auto",padding:"0 16px"}}>
 </div>
 <div><label style={sty.lbl}>性别</label><select style={sty.input} value={form.sex} onChange={e=>setForm({...form,sex:e.target.value})}><option value="male">男</option><option value="female">女</option></select></div>
 </div>
-<div style={{textAlign:"center",marginTop:20}}><button style={sty.btn} onClick={run}>排 盘</button></div>
+<div style={{textAlign:"center",marginTop:20}}><button style={sty.btn} onClick={run}>推 盘</button></div>
 </div>
 
 {R&&<div style={{animation:"fadeIn .6s ease forwards"}}>
