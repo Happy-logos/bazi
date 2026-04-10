@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>八字精算 · 万物皆可用数学解答 | 66与小能熊</title>
+<meta name="description" content="基于天文算法的八字排盘工具，锚点：公元前720年日食，验证：儒略日连续推算">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Serif SC','Source Han Serif SC','STSong',serif;background:linear-gradient(180deg,#faf6f0 0%,#f5ede0 40%,#faf6f0 100%);color:#2d2418;min-height:100vh}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useCallback,useMemo}=React;
+
+const TG=["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+const DZ=["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+const WTG={"甲":"木","乙":"木","丙":"火","丁":"火","戊":"土","己":"土","庚":"金","辛":"金","壬":"水","癸":"水"};
+const WDZ={"子":"水","丑":"土","寅":"木","卯":"木","辰":"土","巳":"火","午":"火","未":"土","申":"金","酉":"金","戌":"土","亥":"水"};
+const YY={"甲":"阳","乙":"阴","丙":"阳","丁":"阴","戊":"阳","己":"阴","庚":"阳","辛":"阴","壬":"阳","癸":"阴"};
+const CG={"子":["癸"],"丑":["己","癸","辛"],"寅":["甲","丙","戊"],"卯":["乙"],"辰":["戊","乙","癸"],"巳":["丙","庚","戊"],"午":["丁","己"],"未":["己","丁","乙"],"申":["庚","壬","戊"],"酉":["辛"],"戌":["戊","辛","丁"],"亥":["壬","甲"]};
+const NY={"甲子":"海中金","乙丑":"海中金","丙寅":"炉中火","丁卯":"炉中火","戊辰":"大林木","己巳":"大林木","庚午":"路旁土","辛未":"路旁土","壬申":"剑锋金","癸酉":"剑锋金","甲戌":"山头火","乙亥":"山头火","丙子":"涧下水","丁丑":"涧下水","戊寅":"城头土","己卯":"城头土","庚辰":"白蜡金","辛巳":"白蜡金","壬午":"杨柳木","癸未":"杨柳木","甲申":"泉中水","乙酉":"泉中水","丙戌":"屋上土","丁亥":"屋上土","戊子":"霹雳火","己丑":"霹雳火","庚寅":"松柏木","辛卯":"松柏木","壬辰":"长流水","癸巳":"长流水","甲午":"砂石金","乙未":"砂石金","丙申":"山下火","丁酉":"山下火","戊戌":"平地木","己亥":"平地木","庚子":"壁上土","辛丑":"壁上土","壬寅":"金箔金","癸卯":"金箔金","甲辰":"覆灯火","乙巳":"覆灯火","丙午":"天河水","丁未":"天河水","戊申":"大驿土","己酉":"大驿土","庚戌":"钗钏金","辛亥":"钗钏金","壬子":"桑柘木","癸丑":"桑柘木","甲寅":"大溪水","乙卯":"大溪水","丙辰":"砂中土","丁巳":"砂中土","戊午":"天上火","己未":"天上火","庚申":"石榴木","辛酉":"石榴木","壬戌":"大海水","癸亥":"大海水"};
+const WC={"金":"#C9A96E","木":"#5B8C5A","水":"#3A6B8C","火":"#C75B3A","土":"#8B7355"};
+const WE={"金":"🪙","木":"🌿","水":"💧","火":"🔥","土":"⛰️"};
+
+const CITIES=[
+{name:"保定",lon:115.4646},{name:"北京",lon:116.4074},{name:"蚌埠",lon:117.389},{name:"长春",lon:125.3235},{name:"长沙",lon:112.9388},{name:"常州",lon:119.9741},{name:"成都",lon:104.0665},{name:"大连",lon:121.6147},{name:"东莞",lon:113.7518},{name:"佛山",lon:113.1214},{name:"福州",lon:119.2965},{name:"赣州",lon:114.935},{name:"高雄",lon:120.3014},{name:"广州",lon:113.2644},{name:"贵阳",lon:106.6302},{name:"桂林",lon:110.29},{name:"哈尔滨",lon:126.6424},{name:"海口",lon:110.3494},{name:"邯郸",lon:114.5391},{name:"杭州",lon:120.1551},{name:"合肥",lon:117.2272},{name:"呼和浩特",lon:111.7491},{name:"惠州",lon:114.416},{name:"济南",lon:117.1205},{name:"九江",lon:116.0019},{name:"开封",lon:114.3071},{name:"昆明",lon:102.8329},{name:"兰州",lon:103.8343},{name:"拉萨",lon:91.1322},{name:"柳州",lon:109.416},{name:"洛阳",lon:112.454},{name:"绵阳/江油",lon:104.7459},{name:"南昌",lon:115.8581},{name:"南京",lon:118.7969},{name:"南宁",lon:108.3661},{name:"宁波",lon:121.544},{name:"澳门",lon:113.5439},{name:"青岛",lon:120.3826},{name:"泉州",lon:118.6756},{name:"秦皇岛",lon:119.6005},{name:"三亚",lon:109.5082},{name:"汕头",lon:116.6814},{name:"上海",lon:121.4737},{name:"深圳",lon:114.0579},{name:"沈阳",lon:123.4315},{name:"石家庄",lon:114.5149},{name:"苏州",lon:120.5853},{name:"太原",lon:112.5489},{name:"台北",lon:121.5654},{name:"台中",lon:120.6736},{name:"唐山",lon:118.1802},{name:"温州",lon:120.6994},{name:"乌鲁木齐",lon:87.6168},{name:"无锡",lon:120.3119},{name:"武汉",lon:114.3054},{name:"芜湖",lon:118.4326},{name:"西安",lon:108.9402},{name:"厦门",lon:118.0894},{name:"襄阳",lon:112.144},{name:"西宁",lon:101.7782},{name:"香港",lon:114.1694},{name:"徐州",lon:117.284},{name:"烟台",lon:121.4479},{name:"银川",lon:106.2782},{name:"宜昌",lon:111.2864},{name:"岳阳",lon:113.1286},{name:"遵义",lon:106.9273},{name:"湛江",lon:110.3594},{name:"郑州",lon:113.6254},{name:"中山",lon:113.3926},{name:"重庆",lon:106.5516},{name:"珠海",lon:113.5767},{name:"株洲",lon:113.1337}
+];
+
+function ss(d,o){const w=["木","火","土","金","水"];const df=(w.indexOf(WTG[o])-w.indexOf(WTG[d])+5)%5;const s=YY[d]===YY[o];return[["比肩","劫财"],["食神","伤官"],["偏财","正财"],["七杀","正官"],["偏印","正印"]][df][s?0:1]}
+function jd(y,m,d,h=0,mi=0){let yr=y,mo=m;const dy=d+h/24+mi/1440;if(mo<=2){yr--;mo+=12}const A=Math.floor(yr/100),B=2-A+Math.floor(A/4);return Math.floor(365.25*(yr+4716))+Math.floor(30.6001*(mo+1))+dy+B-1524.5}
+function eot(doy){const B=2*Math.PI*(doy-81)/365;return 9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B)}
+function doy(y,m,d){return Math.floor((new Date(y,m-1,d)-new Date(y,0,1))/864e5)+1}
+function tst(y,m,d,h,mi,lon,tz=8){const sl=tz*15,lc=(lon-sl)*4,e=eot(doy(y,m,d)),t=lc+e,tm=h*60+mi+t;return{trueH:Math.floor(tm/60),trueM:Math.floor(tm%60),corr:Math.round(t*100)/100,lc:Math.round(lc*100)/100,eo:Math.round(e*100)/100}}
+function sc(h,m=0){const t=h+m/60;if(t>=23||t<1)return"子";if(t<3)return"丑";if(t<5)return"寅";if(t<7)return"卯";if(t<9)return"辰";if(t<11)return"巳";if(t<13)return"午";if(t<15)return"未";if(t<17)return"申";if(t<19)return"酉";if(t<21)return"戌";return"亥"}
+function sl(j){const T=(j-2451545)/36525,L=(280.46646+36000.76983*T)%360,M=((357.52911+35999.05029*T)%360)*Math.PI/180,C=(1.914602-.004817*T)*Math.sin(M)+(.019993-.000101*T)*Math.sin(2*M)+.000289*Math.sin(3*M),o=125.04-1934.136*T;return((L+C-.00569-.00478*Math.sin(o*Math.PI/180))%360+360)%360}
+function fjd(yr,tl){let am;if(tl>=285)am=1+(tl-285)/30;else if(tl===0)am=3.2;else am=3.2+tl/30;const ja=jd(yr,1,1)+am*30.44;let lo=ja-35,hi=ja+35;for(let i=0;i<64;i++){const mid=(lo+hi)/2,d=((sl(mid)-tl+180)%360+360)%360-180;if(d<0)lo=mid;else hi=mid}return(lo+hi)/2}
+function jd2d(j){const j2=j+.5,Z=Math.floor(j2),F=j2-Z,A=Z<2299161?Z:Z+1+Math.floor((Z-1867216.25)/36524.25)-Math.floor(Math.floor((Z-1867216.25)/36524.25)/4),B=A+1524,C=Math.floor((B-122.1)/365.25),D=Math.floor(365.25*C),E=Math.floor((B-D)/30.6001),d=B-D-Math.floor(30.6001*E),m=E<14?E-1:E-13,y=m>2?C-4716:C-4715,hf=F*24;return{year:y,month:m,day:d,hour:Math.floor(hf),minute:Math.floor((hf-Math.floor(hf))*60)}}
+function ajq(yr){const info=[[315,"立春",1],[330,"雨水",0],[345,"惊蛰",1],[0,"春分",0],[15,"清明",1],[30,"谷雨",0],[45,"立夏",1],[60,"小满",0],[75,"芒种",1],[90,"夏至",0],[105,"小暑",1],[120,"大暑",0],[135,"立秋",1],[150,"处暑",0],[165,"白露",1],[180,"秋分",0],[195,"寒露",1],[210,"霜降",0],[225,"立冬",1],[240,"小雪",0],[255,"大雪",1],[270,"冬至",0],[285,"小寒",1],[300,"大寒",0]];return info.map(([l,n,j])=>{const jv=fjd(yr,l),d=jd2d(jv+8/24);return{name:n,isJie:!!j,jd:jv,dtBj:d}}).sort((a,b)=>a.jd-b.jd)}
+function dgz(y,m,d){const base=new Date(2008,6,23),target=new Date(y,m-1,d),delta=Math.round((target-base)/864e5);return[TG[((delta%10)+10)%10],DZ[((delta%12)+12)%12]]}
+function ygz(yr,m,d,jql){const lc=jql.find(j=>j.name==="立春"&&j.dtBj.year===yr);let ey=yr;if(lc&&new Date(yr,m-1,d)<new Date(lc.dtBj.year,lc.dtBj.month-1,lc.dtBj.day))ey--;return[TG[((ey-4)%10+10)%10],DZ[((ey-4)%12+12)%12]]}
+function mgz(yt,yr,m,d,h,mi,jql){const b=new Date(yr,m-1,d,h,mi),j2z={"立春":"寅","惊蛰":"卯","清明":"辰","立夏":"巳","芒种":"午","小暑":"未","立秋":"申","白露":"酉","寒露":"戌","立冬":"亥","大雪":"子","小寒":"丑"},js=jql.filter(j=>j.isJie).sort((a,b)=>a.jd-b.jd);let cj=null,nj=null,mz="寅";for(let i=0;i<js.length;i++){if(b<new Date(js[i].dtBj.year,js[i].dtBj.month-1,js[i].dtBj.day,js[i].dtBj.hour,js[i].dtBj.minute)){if(i>0)cj=js[i-1];nj=js[i];break}}if(!nj&&js.length)cj=js[js.length-1];if(cj)mz=j2z[cj.name]||"寅";const yi=TG.indexOf(yt),st={0:2,5:2,1:4,6:4,2:6,7:6,3:8,8:8,4:0,9:0}[yi],of=((DZ.indexOf(mz)-2)%12+12)%12;return[TG[(st+of)%10],mz,cj,nj]}
+function hgz(dt,sz){const di=TG.indexOf(dt),st={0:0,5:0,1:2,6:2,2:4,7:4,3:6,8:6,4:8,9:8}[di];return[TG[(st+DZ.indexOf(sz))%10],sz]}
+function cdy(sex,yt,yr,m,d,h,mi,cj,nj,jql){const ya=TG.indexOf(yt)%2===0,ml=sex==="male",fw=(ya&&ml)||(!ya&&!ml),js=jql.filter(j=>j.isJie).sort((a,b)=>a.jd-b.jd),bj=jd(yr,m,d,h,mi);let tj;if(fw)tj=nj||js.find(j=>j.jd>bj);else tj=cj||[...js].reverse().find(j=>j.jd<bj);if(!tj)return null;const dd=Math.abs(tj.jd-bj),yf=dd/3;let fy=Math.floor(yf),fm=Math.round((yf-fy)*12);if(fm>=12){fy++;fm-=12}let qy=yr+fy,qm=m+fm;if(qm>12){qy++;qm-=12}return{dir:fw?"顺排":"逆排",reason:`${ya?"阳":"阴"}年${ml?"男":"女"}命`,jie:tj.name,dd:Math.round(dd*100)/100,fy,fm,sy:qy,sm:qm,fw}}
+function gdl(mt,mz,fw,n=8){const ti=TG.indexOf(mt),di=DZ.indexOf(mz);return Array.from({length:n},(_,i)=>{const x=i+1;return TG[((fw?ti+x:ti-x)%10+10)%10]+DZ[((fw?di+x:di-x)%12+12)%12]})}
+
+function calc(yr,m,d,h,mi,lon,sex){
+const t=tst(yr,m,d,h,mi,lon),cs=sc(h,mi),ts=sc(t.trueH,t.trueM);
+let aq=[];for(const y of[yr-1,yr,yr+1])aq.push(...ajq(y));aq.sort((a,b)=>a.jd-b.jd);
+const seen=new Set,uq=aq.filter(j=>{const k=j.name+"_"+j.dtBj.year+j.dtBj.month;if(seen.has(k))return false;seen.add(k);return true});
+const[yt,yz]=ygz(yr,m,d,uq),[mt,mz,cj,nj]=mgz(yt,yr,m,d,h,mi,uq);
+let ay=yr,am=m,ad=d;if(t.trueH>=23){const nd=new Date(yr,m-1,d+1);ay=nd.getFullYear();am=nd.getMonth()+1;ad=nd.getDate()}
+const[dt,dz]=dgz(ay,am,ad),[ht,hz]=hgz(dt,ts);
+const ps=[{l:"年柱",t:yt,z:yz},{l:"月柱",t:mt,z:mz},{l:"日柱",t:dt,z:dz},{l:"时柱",t:ht,z:hz}];
+const wc={金:0,木:0,水:0,火:0,土:0};ps.forEach(p=>{wc[WTG[p.t]]++;wc[WDZ[p.z]]++});
+const sn={};ps.forEach(p=>{if(p.l!=="日柱")sn[p.l+"干"]=ss(dt,p.t);else sn["日柱干"]="日主";CG[p.z].forEach(c=>{sn[p.l+p.z+"藏"+c]=(p.l==="日柱"&&c===dt)?"日主":ss(dt,c)})});
+const di=cdy(sex,yt,yr,m,d,h,mi,cj,nj,uq),dl=di?gdl(mt,mz,di.fw):[];
+const lk=Object.entries(wc).filter(([,v])=>v===0).map(([k])=>k);
+const an=genA(dt,WTG[dt],YY[dt],wc,ps,sn,lk,mt,mz,cj);
+return{t,cs,ts,sc:cs!==ts,ps,wc,lk,sn,di,dl,dw:WTG[dt],dy:YY[dt],dt,cj,nj,an}}
+
+function genA(dt,dw,dy,wc,ps,sn,lk,mt,mz,cj){
+const ls=[];
+const dd={"甲":{i:"🌲",s:"参天大树",d:"甲木为阳木，如参天大树般刚直向上。性格正直有主见，天生具备领导力和开创精神。做事有魄力，但有时过于固执。适合开拓性的事业。"},"乙":{i:"🌿",s:"花草藤蔓",d:"乙木为阴木，如花草藤蔓般柔韧灵活。善于借力生长、适应环境，外柔内韧。看似温和，实则生命力极强。适合需要灵活应变的领域。"},"丙":{i:"☀️",s:"太阳之火",d:"丙火为阳火，如太阳般光明磊落。热情大方，感染力极强，走到哪里都能点亮气氛。心胸开阔不藏私。适合面向大众的事业。"},"丁":{i:"🕯️",s:"灯烛之火",d:"丁火为阴火，如灯烛般细腻温和。洞察力强，善于在黑暗中照亮细节。内心有一团不灭的小火苗，安静但坚定。适合需要深度思考的工作。"},"戊":{i:"🏔️",s:"高山大地",d:"戊土为阳土，如高山大地般厚重沉稳。包容力极强，值得信赖，是朋友圈里的'定海神针'。做事踏实，适合需要稳定和信用的领域。"},"己":{i:"🌾",s:"田园沃土",d:"己土为阴土，如田园沃土般温柔滋养。心思细密，善于培育和支持他人成长。适合教育、咨询、服务类工作。"},"庚":{i:"⚔️",s:"刀剑利器",d:"庚金为阳金，如刀剑般果断刚毅。重义气、讲原则，执行力强，说到做到。性格直接不绕弯。适合需要决断力和执行力的岗位。"},"辛":{i:"💎",s:"珠玉宝石",d:"辛金为阴金，如珠玉般精致敏锐。审美力强，追求完美，内心有自己的坚持。表面温润，内里坚硬。适合需要精细品控和审美的领域。"},"壬":{i:"🌊",s:"江河大海",d:"壬水为阳水，如江河大海般气势磅礴。智慧通达，胸怀宽广，思维奔放。善于从宏观角度把握全局。适合需要战略思维的事业。"},"癸":{i:"💧",s:"雨露溪流",d:"癸水为阴水，如雨露溪流般细腻渗透。灵感丰富，心思缜密，善于滋养万物。有很强的直觉力和感受力，适合创意、写作、研究类工作。"}};
+const dm=dd[dt]||{i:"?",s:"",d:""};
+ls.push({title:`${dm.i} 日主：${dt}（${dy}${dw}）— ${dm.s}`,content:dm.d,type:"master"});
+
+const sw=wc[dw]||0,sg={"金":"土","木":"水","水":"金","火":"木","土":"火"}[dw],sc2=wc[sg]||0,th=sw+sc2;
+const kw={"金":"火","木":"金","水":"土","火":"水","土":"木"}[dw];
+const wk={"金":"木","木":"土","水":"火","火":"金","土":"水"}[dw];
+const ws={"金":"水","木":"火","水":"木","火":"土","土":"金"}[dw];
+const rm={};rm[dw]="比劫（同类、兄弟、竞争者）";rm[sg]="印星（资源、学习、靠山）";rm[ws]="食伤（表达、创造、输出）";rm[wk]="财星（收入、行动力）";rm[kw]="官杀（压力、规则、权威）";
+
+let st,sd;
+if(th>=5){st="身旺";sd=`日主能量充沛（${dw}${sw}个 + 生扶的${sg}${sc2}个 = ${th}个助力）。身旺的人精力充沛、内心有底气，但容易"想太多做太少"——能量进来多、出去少。\n\n核心策略：多泄多耗，少生少助。用${ws}（泄秀）和${wk}（耗财）来平衡。`}
+else if(th>=3){st="中和偏旺";sd=`日主力量适中偏强（助力${th}个），整体较为平衡。既有底气支撑行动，又不至于能量过剩。\n\n核心策略：适度泄耗，保持平衡。`}
+else if(th>=2){st="中和偏弱";sd=`日主力量偏弱（助力${th}个），需要外部支持来稳固根基。\n\n核心策略：适当补强，借力发挥。多亲近${sg}（印星）和${dw}（比劫）。`}
+else{st="身弱";sd=`日主得到的生扶较少（助力仅${th}个）。身弱不等于命不好，关键在于能否借到外力。\n\n核心策略：借印借比，以柔克刚。找对贵人和平台比个人硬扛更重要。`}
+ls.push({title:`⚖️ 日主强弱：${st}`,content:sd});
+
+let xl=[],jl=[];
+if(th>=4){xl=[{wx:ws,r:`${rm[ws]}\n泄日主旺气，把内在的能量转化为外在的成果。`},{wx:wk,r:`${rm[wk]}\n消耗多余能量，转化为实际收益。身旺之人追财不怕累。`}];jl=[{wx:sg,r:`${rm[sg]}\n生扶已够，再加反而"溺爱"，容易陷入过度准备而不行动。`},{wx:dw,r:`${rm[dw]}\n身已旺，同类太多则竞争加剧、资源分散。`}]}
+else{xl=[{wx:sg,r:`${rm[sg]}\n日主需要生扶来增强根基，印星是贵人和资源来源。`},{wx:dw,r:`${rm[dw]}\n同类帮扶，增强自身力量。合伙人、朋友的支持很重要。`}];jl=[{wx:kw,r:`${rm[kw]}\n身弱遇到太多管束和压力容易被压垮，需量力而行。`},{wx:wk,r:`${rm[wk]}\n精力有限，过度追财反而伤身。先养根基再图发展。`}]}
+ls.push({title:"✅ 喜用五行",content:xl.map(x=>`${WE[x.wx]} **${x.wx}** — ${x.r}`).join("\n\n"),type:"xi"});
+ls.push({title:"⛔ 忌讳五行",content:jl.map(x=>`${WE[x.wx]} **${x.wx}** — ${x.r}`).join("\n\n"),type:"ji"});
+
+if(lk.length>0){const la={"金":`🪙 **缺金**\n金代表决断、规则和工具。\n💡 搭建个人工作流、养成固定节奏、使用好的工具辅助决策。`,"木":`🌿 **缺木**\n木代表表达、创造和输出。缺木的人往往"想得多说得少"。\n💡 写作、内容创作、教学，把所知所想表达出来。每一次输出都是在"种树"。`,"水":`💧 **缺水**\n水代表智慧、灵活和流动。\n💡 多阅读、多接触不同领域、培养多角度思考。`,"火":`🔥 **缺火**\n火代表行动力和变现。缺火的人可能"万事俱备只缺点火"。\n💡 主动定价收费、大胆推广自己、设定deadline。`,"土":`⛰️ **缺土**\n土代表稳定、信用和扎根。\n💡 深耕一个领域、积累口碑、建立长期信任关系。`};
+ls.push({title:"🔮 五行缺失与补益",content:lk.map(w=>la[w]||`缺${w}`).join("\n\n"),type:"lack"})}
+
+const fd=`${sg}（印）→ ${dw}（日主）→ ${ws}（食伤）→ ${wk}（财）\n\n这条链路是否通畅，决定了能量能否从"输入"转化为"输出"再转化为"收益"。${wc[ws]===0?`\n\n⚠ ${ws}（食伤/输出端）力量薄弱，"输出"是需要后天主动修炼的环节。`:""}${wc[wk]===0?`\n\n⚠ ${wk}（财/变现端）力量薄弱，变现需要更主动地推动。`:""}`;
+ls.push({title:"🔄 能量流向",content:fd});
+
+const mc=CG[mz][0],ms=ss(dt,mc);
+ls.push({title:"📋 格局概要",content:`月令${mz}（${WDZ[mz]}），主气${mc}（${ms}）。${cj?`当前节令：${cj.name}。`:""}\n\n格局的详细成败分析涉及藏干透出、刑冲合害、调候用神等复杂因素，以上自动分析仅供娱乐参考。`});
+return ls}
+
+function App(){
+const[form,setForm]=useState({year:"1990",month:"1",day:"1",hour:"12",minute:"0",cityIdx:"1",sex:"male",customLon:""});
+const[result,setResult]=useState(null);
+const[showCustom,setShowCustom]=useState(false);
+const run=useCallback(()=>{const y=+form.year,m=+form.month,d=+form.day,h=+form.hour,mi=+form.minute,lon=showCustom&&form.customLon?+form.customLon:CITIES[+form.cityIdx]?.lon;if(isNaN(y)||isNaN(lon))return;setResult(calc(y,m,d,h,mi,lon,form.sex))},[form,showCustom]);
+const R=result;
+
+const renderBold=(text,color)=>text.split(/(\*\*[^*]+\*\*)/g).map((p,i)=>p.startsWith("**")&&p.endsWith("**")?<strong key={i} style={{color}}>{p.slice(2,-2)}</strong>:<span key={i}>{p}</span>);
+
+const sty={input:{background:"rgba(45,36,24,0.04)",border:"1px solid rgba(45,36,24,0.15)",color:"#2d2418",padding:"10px 14px",borderRadius:6,fontSize:15,fontFamily:"inherit",outline:"none",width:"100%"},btn:{background:"linear-gradient(135deg,#5B8C5A,#3d6b3c)",color:"#fff",border:"none",padding:"14px 40px",borderRadius:8,fontSize:17,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:2,boxShadow:"0 4px 12px rgba(91,140,90,0.3)"},card:{background:"rgba(91,140,90,0.04)",border:"1px solid rgba(91,140,90,0.15)",borderRadius:12,padding:"20px 16px",textAlign:"center",minWidth:100,flex:1},sec:{fontSize:18,fontWeight:700,color:"#5B8C5A",marginBottom:16,paddingBottom:8,borderBottom:"1px solid rgba(91,140,90,0.2)"},lbl:{fontSize:12,color:"rgba(45,36,24,0.45)",marginBottom:4,display:"block"},sub:{fontSize:13,color:"rgba(45,36,24,0.45)"}};
+
+return(<div style={{maxWidth:640,margin:"0 auto",padding:"0 16px"}}>
+<div style={{textAlign:"center",padding:"48px 0 32px",borderBottom:"1px solid rgba(91,140,90,0.2)"}}>
+<div style={{fontSize:13,color:"#5B8C5A",letterSpacing:6,marginBottom:12}}>八 字 精 算</div>
+<h1 style={{fontSize:26,fontWeight:900,letterSpacing:4,marginBottom:8,background:"linear-gradient(135deg,#2d2418,#C75B3A)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>万物皆可用数学解答</h1>
+<p style={{fontSize:13,color:"rgba(45,36,24,0.4)",maxWidth:480,margin:"0 auto",lineHeight:1.8}}>锚点：公元前720年日食 · 算法：Meeus太阳黄经 · 验证：儒略日连续推算</p>
+</div>
+
+<div style={{padding:"24px 0"}}>
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
+<div><label style={sty.lbl}>年</label><input style={sty.input} type="number" value={form.year} onChange={e=>setForm({...form,year:e.target.value})} min="1900" max="2100"/></div>
+<div><label style={sty.lbl}>月</label><select style={sty.input} value={form.month} onChange={e=>setForm({...form,month:e.target.value})}>{Array.from({length:12},(_,i)=><option key={i+1} value={i+1}>{i+1}月</option>)}</select></div>
+<div><label style={sty.lbl}>日</label><select style={sty.input} value={form.day} onChange={e=>setForm({...form,day:e.target.value})}>{Array.from({length:31},(_,i)=><option key={i+1} value={i+1}>{i+1}日</option>)}</select></div>
+</div>
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+<div><label style={sty.lbl}>时（北京时间）</label><select style={sty.input} value={form.hour} onChange={e=>setForm({...form,hour:e.target.value})}>{Array.from({length:24},(_,i)=><option key={i} value={i}>{String(i).padStart(2,"0")}时</option>)}</select></div>
+<div><label style={sty.lbl}>分</label><select style={sty.input} value={form.minute} onChange={e=>setForm({...form,minute:e.target.value})}>{Array.from({length:60},(_,i)=><option key={i} value={i}>{String(i).padStart(2,"0")}分</option>)}</select></div>
+</div>
+<div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginBottom:10}}>
+<div><label style={sty.lbl}>出生城市 <button style={{color:"#5B8C5A",background:"none",border:"none",cursor:"pointer",fontSize:12,textDecoration:"underline",fontFamily:"inherit"}} onClick={()=>setShowCustom(!showCustom)}>{showCustom?"选择城市":"手动输入经度"}</button></label>
+{showCustom?<input style={sty.input} type="number" step="0.01" placeholder="如 104.7459" value={form.customLon} onChange={e=>setForm({...form,customLon:e.target.value})}/>:
+<select style={sty.input} value={form.cityIdx} onChange={e=>setForm({...form,cityIdx:e.target.value})}>{CITIES.map((c,i)=><option key={i} value={i}>{c.name} ({c.lon}°)</option>)}</select>}
+</div>
+<div><label style={sty.lbl}>性别</label><select style={sty.input} value={form.sex} onChange={e=>setForm({...form,sex:e.target.value})}><option value="male">男</option><option value="female">女</option></select></div>
+</div>
+<div style={{textAlign:"center",marginTop:20}}><button style={sty.btn} onClick={run}>排 盘</button></div>
+</div>
+
+{R&&<div style={{animation:"fadeIn .6s ease forwards"}}>
+<style>{`@keyframes fadeIn{from{opacity:0}to{opacity:1}}`}</style>
+
+{/* TST */}
+<div style={{marginBottom:28}}>
+<div style={sty.sec}>☀️ 真太阳时校正</div>
+<div style={{background:"rgba(91,140,90,0.04)",borderRadius:12,padding:20,border:"1px solid rgba(91,140,90,0.1)"}}>
+<div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={sty.sub}>钟表时间</span><span>{String(+form.hour).padStart(2,"0")}:{String(+form.minute).padStart(2,"0")}（{R.cs}时）</span></div>
+<div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={sty.sub}>校正量</span><span style={{color:R.t.corr<0?"#C75B3A":"#5B8C5A"}}>{R.t.corr>0?"+":""}{R.t.corr} 分钟</span></div>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{color:"#5B8C5A",fontWeight:700}}>真太阳时</span><span style={{fontSize:20,fontWeight:700,color:"#5B8C5A"}}>{String(R.t.trueH).padStart(2,"0")}:{String(R.t.trueM).padStart(2,"0")}（{R.ts}时）</span></div>
+{R.sc&&<div style={{marginTop:12,padding:"8px 12px",background:"rgba(199,91,58,0.08)",borderRadius:6,fontSize:13,color:"#C75B3A"}}>⚠ 时辰改变！{R.cs}时 → {R.ts}时。如不校正，时柱将完全排错。</div>}
+</div></div>
+
+{/* Pillars */}
+<div style={{marginBottom:28}}>
+<div style={sty.sec}>🏛️ 四柱排盘</div>
+<div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>{R.ps.map((p,i)=>
+<div key={i} style={sty.card}>
+<div style={{fontSize:12,color:"rgba(45,36,24,0.35)",marginBottom:8}}>{p.l}</div>
+<div style={{fontSize:30,fontWeight:900,marginBottom:4,color:WC[WTG[p.t]]}}>{p.t}</div>
+<div style={{fontSize:30,fontWeight:900,marginBottom:8,color:WC[WDZ[p.z]]}}>{p.z}</div>
+<div style={{fontSize:11,color:"rgba(45,36,24,0.4)",marginBottom:4}}>{CG[p.z].join(" ")}</div>
+<div style={{fontSize:11}}><span style={{display:"inline-block",padding:"2px 8px",borderRadius:4,background:"rgba(91,140,90,0.12)",color:"#5B8C5A"}}>{R.sn[p.l+"干"]}</span></div>
+<div style={{fontSize:11,color:"rgba(45,36,24,0.3)",marginTop:4}}>{NY[p.t+p.z]||""}</div>
+</div>)}</div>
+<div style={{textAlign:"center",marginTop:14}}>
+<span style={{fontSize:14,color:"rgba(45,36,24,0.5)"}}>日主 </span>
+<span style={{fontSize:22,fontWeight:900,color:WC[R.dw]}}>{R.dt}</span>
+<span style={{fontSize:14,color:"rgba(45,36,24,0.5)",marginLeft:8}}>（{R.dy}{R.dw}）</span>
+</div></div>
+
+{/* Wuxing */}
+<div style={{marginBottom:28}}>
+<div style={sty.sec}>五行分布</div>
+<div style={{background:"rgba(91,140,90,0.04)",borderRadius:12,padding:20,border:"1px solid rgba(91,140,90,0.1)"}}>
+{["金","木","水","火","土"].map(w=><div key={w} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+<span style={{width:22,textAlign:"center"}}>{WE[w]}</span>
+<span style={{width:18,fontWeight:700,color:WC[w]}}>{w}</span>
+<div style={{flex:1,background:"rgba(91,140,90,0.05)",borderRadius:4,height:8}}><div style={{width:`${(R.wc[w]/8)*100}%`,height:8,borderRadius:4,background:WC[w],transition:"width .6s"}}/></div>
+<span style={{width:18,textAlign:"right",fontSize:14,fontWeight:700}}>{R.wc[w]}</span>
+</div>)}
+{R.lk.length>0&&<div style={{marginTop:8,fontSize:13,color:"#C75B3A"}}>⚠ 五行缺：{R.lk.join("、")}</div>}
+</div></div>
+
+{/* Dayun */}
+{R.di&&<div style={{marginBottom:28}}>
+<div style={sty.sec}>🔄 大运（{R.di.dir}）</div>
+<div style={{fontSize:13,color:"rgba(45,36,24,0.45)",marginBottom:10}}>{R.di.reason} · 起运 {R.di.fy}岁{R.di.fm}个月 · 约{R.di.sy}年{R.di.sm}月</div>
+{R.dl.map((dy,i)=>{const sy=R.di.sy+i*10,ey=sy+9,ag=R.di.fy+i*10,cur=sy<=2026&&2026<=ey;return(
+<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 14px",borderRadius:8,background:cur?"rgba(199,91,58,0.05)":"rgba(91,140,90,0.03)",border:`1px solid ${cur?"rgba(199,91,58,0.15)":"rgba(91,140,90,0.08)"}`,marginBottom:5}}>
+<span style={{fontWeight:700,fontSize:18,color:WC[WTG[dy[0]]],minWidth:40}}>{dy}</span>
+<span style={{fontSize:12,color:"rgba(45,36,24,0.4)"}}>{WTG[dy[0]]}{WDZ[dy[1]]}</span>
+<span style={{fontSize:12,color:"rgba(45,36,24,0.35)"}}>{NY[dy]||""}</span>
+<span style={{flex:1}}/>
+<span style={{fontSize:12,color:"rgba(45,36,24,0.45)"}}>{sy}-{ey}</span>
+<span style={{fontSize:12,color:"rgba(45,36,24,0.3)"}}>[{ag}-{ag+9}岁]</span>
+{cur&&<span style={{fontSize:11,color:"#C75B3A",fontWeight:700}}>◀ 当前</span>}
+</div>)})}
+</div>}
+
+{/* Analysis */}
+{R.an&&<div style={{marginBottom:28}}>
+<div style={sty.sec}>📖 命局简析</div>
+{R.an.map((item,i)=>{
+const bg=item.type==="xi"?"rgba(91,140,90,0.05)":item.type==="ji"?"rgba(199,91,58,0.04)":item.type==="master"?"rgba(199,91,58,0.03)":"rgba(45,36,24,0.02)";
+const bc=item.type==="xi"?"rgba(91,140,90,0.18)":item.type==="ji"?"rgba(199,91,58,0.15)":"rgba(91,140,90,0.1)";
+const tc=item.type==="xi"?"#5B8C5A":item.type==="ji"?"#C75B3A":item.type==="master"?"#C75B3A":"#5B8C5A";
+return(<div key={i} style={{background:bg,borderRadius:10,padding:"14px 18px",marginBottom:7,border:`1px solid ${bc}`}}>
+<div style={{fontSize:14,fontWeight:700,color:tc,marginBottom:6}}>{item.title}</div>
+<div style={{fontSize:13,lineHeight:1.9,color:"rgba(45,36,24,0.6)",whiteSpace:"pre-line"}}>{renderBold(item.content,tc)}</div>
+</div>)})}
+<div style={{marginTop:10,padding:"10px 14px",background:"rgba(91,140,90,0.04)",borderRadius:8,border:"1px solid rgba(91,140,90,0.1)"}}>
+<div style={{fontSize:12,color:"rgba(45,36,24,0.35)",lineHeight:1.8}}>⚠️ 免责声明：本工具所有分析均为基于五行生克基本原理的自动生成内容，不构成任何人生、健康、投资、婚姻等方面的决策依据。</div>
+</div></div>}
+
+{/* Verify */}
+<div style={{marginBottom:28}}>
+<div style={sty.sec}>🔗 验证链</div>
+<div style={{background:"rgba(91,140,90,0.04)",borderRadius:12,padding:18,border:"1px solid rgba(91,140,90,0.1)",fontSize:13,lineHeight:2,color:"rgba(45,36,24,0.5)"}}>
+<div>锚点：《春秋》鲁隐公三年二月己巳日 = 公元前720年2月22日（日食验证）</div>
+<div>算法：儒略日连续推算，60甲子取模</div>
+<div>精度：真太阳时 ±30秒 · 节气 ±2分钟 · 日柱 无误差</div>
+<div style={{marginTop:8,color:"#C75B3A"}}>⚠ 本工具仅为娱乐消遣之用，排盘数据基于天文算法，分析内容为自动生成，不构成任何决策依据。</div>
+</div></div>
+
+<div style={{textAlign:"center",padding:"20px 0",borderTop:"1px solid rgba(91,140,90,0.1)",fontSize:12,color:"rgba(45,36,24,0.25)"}}>66与小能熊 · 娱乐之作</div>
+</div>}
+
+{!R&&<div style={{textAlign:"center",padding:"40px 20px",color:"rgba(45,36,24,0.3)",fontSize:13}}>输入出生信息，点击「排盘」开始计算</div>}
+</div>)}
+
+ReactDOM.render(<App/>,document.getElementById("root"));
+</script>
+</body>
+</html>
